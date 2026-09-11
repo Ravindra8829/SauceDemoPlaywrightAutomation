@@ -7,8 +7,6 @@ public class CartPage
     private readonly IPage _page;
 
     private readonly ILocator _cartBadge;
-    private readonly ILocator _bikeLightRemoveButton;
-    private readonly ILocator _backpackRemoveButton;
     private readonly ILocator _productNames;
     private readonly ILocator _checkoutButton;
 
@@ -17,8 +15,6 @@ public class CartPage
         _page = page;
 
         _cartBadge = _page.Locator("[data-test='shopping-cart-badge']");
-        _bikeLightRemoveButton = _page.Locator("[data-test='remove-sauce-labs-bike-light']");
-        _backpackRemoveButton = _page.Locator("[data-test='remove-sauce-labs-backpack']");
         _productNames = _page.Locator("[data-test='inventory-item-name']");
         _checkoutButton = _page.Locator("[data-test='checkout']");
     }
@@ -29,14 +25,15 @@ public class CartPage
         return int.Parse(count);
     }
 
-    public async Task RemoveBikeLightAsync()
+    public async Task RemoveProductAsync(string productName)
     {
-        await _bikeLightRemoveButton.ClickAsync();
-    }
+        var slug = productName
+            .ToLowerInvariant()
+            .Replace(" ", "-");
 
-    public async Task RemoveBackpackAsync()
-    {
-        await _backpackRemoveButton.ClickAsync();
+        await _page
+            .Locator($"[data-test='remove-{slug}']")
+            .ClickAsync();
     }
 
     public async Task<bool> IsProductPresentAsync(string productName)

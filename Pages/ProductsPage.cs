@@ -6,8 +6,6 @@ public class ProductsPage
 {
     private readonly IPage _page;
 
-    private readonly ILocator _backpackAddToCart;
-    private readonly ILocator _bikeLightAddToCart;
     private readonly ILocator _shoppingCart;
     private readonly ILocator _cartBadge;
 
@@ -15,20 +13,19 @@ public class ProductsPage
     {
         _page = page;
 
-        _backpackAddToCart = _page.Locator("[data-test='add-to-cart-sauce-labs-backpack']");
-        _bikeLightAddToCart = _page.Locator("[data-test='add-to-cart-sauce-labs-bike-light']");
         _shoppingCart = _page.Locator("[data-test='shopping-cart-link']");
         _cartBadge = _page.Locator("[data-test='shopping-cart-badge']");
     }
 
-    public async Task AddBackpackAsync()
+    public async Task AddProductAsync(string productName)
     {
-        await _backpackAddToCart.ClickAsync();
-    }
+        var slug = productName
+            .ToLowerInvariant()
+            .Replace(" ", "-");
 
-    public async Task AddBikeLightAsync()
-    {
-        await _bikeLightAddToCart.ClickAsync();
+        await _page
+            .Locator($"[data-test='add-to-cart-{slug}']")
+            .ClickAsync();
     }
 
     public async Task<int> GetCartCountAsync()

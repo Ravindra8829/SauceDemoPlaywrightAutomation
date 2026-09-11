@@ -1,112 +1,61 @@
-using Microsoft.Playwright;
+using Microsoft.Playwright.NUnit;
 using NUnit.Framework;
 using SauceDemoPlaywrightAutomation.Pages;
 
 namespace SauceDemoPlaywrightAutomation.Tests;
 
-public class CheckoutTest
+[TestFixture]
+public class CheckoutTests : PageTest
 {
-    private IPlaywright _playwright = null!;
-    private IBrowser _browser = null!;
-    private IPage _page = null!;
-
-    [SetUp]
-    public async Task SetUp()
-    {
-        _playwright = await Playwright.CreateAsync();
-
-        _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-        {
-            Channel = "chrome",
-            Headless = false
-        });
-
-        _page = await _browser.NewPageAsync();
-    }
+    private const string BaseUrl = "https://www.saucedemo.com/";
+    private const string ItemBackpack = "Sauce Labs Backpack";
+    private const string ItemBikeLight = "Sauce Labs Bike Light";
 
     [Test]
-    public async Task CompleteCheckout()
+    public async Task CompleteCheckout_ShouldSucceed_WhenItemIsRemovedFromCart()
     {
-        // Open SauceDemo
-        await _page.GotoAsync("https://www.saucedemo.com/");
+        var loginPage = new LoginPage(Page);
+        var productsPage = new ProductsPage(Page);
+        var cartPage = new CartPage(Page);
+        var checkoutInfoPage = new CheckoutInfoPage(Page);
+        var checkoutOverviewPage = new CheckoutOverviewPage(Page);
+        var checkoutCompletePage = new CheckoutCompletePage(Page);
 
-        // Login
-        var loginPage = new LoginPage(_page);
-        await loginPage.LoginAsync("visual_user", "secret_sauce");
+        await Page.GotoAsync(BaseUrl);
+        await loginPage.LoginAsync("standard_user", "secret_sauce");
 
-        // Add two products
-        var productsPage = new ProductsPage(_page);
+        await productsPage.AddProductAsync(ItemBackpack);
+        await productsPage.AddProductAsync(ItemBikeLight);
 
-        await productsPage.AddBackpackAsync();
-        await productsPage.AddBikeLightAsync();
+        Assert.That(await productsPage.GetCartCountAsync(), Is.EqualTo(2));
 
-        // Verify cart has 2 products
-        var cartCount = await productsPage.GetCartCountAsync();
-        Assert.That(cartCount, Is.EqualTo(2));
-
-        // Open cart
         await productsPage.OpenCartAsync();
+        await cartPage.RemoveProductAsync(ItemBikeLight);
 
-        // Remove Bike Light
-        var cartPage = new CartPage(_page);
-        await cartPage.RemoveBikeLightAsync();
+        Assert.That(await cartPage.GetCartCountAsync(), Is.EqualTo(1));
+        Assert.That(await cartPage.IsProductPresentAsync(ItemBackpack), Is.True);
 
-        // Verify cart has 1 product
-        cartCount = await cartPage.GetCartCountAsync();
-        Assert.That(cartCount, Is.EqualTo(1));
-
-        // Verify Backpack is the remaining product
-        var backpackInCart =
-            await cartPage.IsProductPresentAsync("Sauce Labs Backpack");
-
-        Assert.That(backpackInCart, Is.True);
-
-        // Checkout
         await cartPage.CheckoutAsync();
-
-        // Fill checkout information
-        var checkoutInfoPage = new CheckoutInfoPage(_page);
 
         await checkoutInfoPage.FillInformationAsync(
             "Ravindra",
             "Suthar",
-            "411001"
-        );
+            "411001");
 
         await checkoutInfoPage.ContinueAsync();
 
-        // Checkout Overview
-        var checkoutOverviewPage = new CheckoutOverviewPage(_page);
+        Assert.That(
+            await checkoutOverviewPage.IsProductPresentAsync(ItemBackpack),
+            Is.True);
 
-        // Verify Backpack is displayed on Overview
-        var backpackOnOverview =
-            await checkoutOverviewPage.IsProductPresentAsync("Sauce Labs Backpack");
-
-        Assert.That(backpackOnOverview, Is.True);
-
-        // Finish checkout
         await checkoutOverviewPage.FinishAsync();
 
-        // Checkout Complete
-        var checkoutCompletePage = new CheckoutCompletePage(_page);
+        Assert.That(
+            await checkoutCompletePage.IsCheckoutCompleteAsync(),
+            Is.True);
 
-        // Verify Checkout: Complete!
-        var checkoutComplete =
-            await checkoutCompletePage.IsCheckoutCompleteAsync();
-
-        Assert.That(checkoutComplete, Is.True);
-
-        // Verify confirmation message
-        var confirmationMessage =
-            await checkoutCompletePage.IsConfirmationMessageVisibleAsync();
-
-        Assert.That(confirmationMessage, Is.True);
-    }
-
-    [TearDown]
-    public async Task TearDown()
-    {
-        await _browser.CloseAsync();
-        _playwright.Dispose();
+        Assert.That(
+            await checkoutCompletePage.IsConfirmationMessageVisibleAsync(),
+            Is.True);
     }
 }

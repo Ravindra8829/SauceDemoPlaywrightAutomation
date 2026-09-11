@@ -33,5 +33,7 @@ public class CheckoutOverviewPage
     public async Task FinishAsync()
     {
         await _finishButton.ClickAsync();
+
+        await _page.WaitForURLAsync("**/checkout-complete.html");
     }
 }
